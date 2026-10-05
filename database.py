@@ -17,10 +17,16 @@ def init_db():
         """)
         conn.execute("""
             CREATE TABLE IF NOT EXISTS user_prefs (
-                user_id    INTEGER PRIMARY KEY,
-                reward_pref TEXT NOT NULL DEFAULT 'all'
+                user_id     INTEGER PRIMARY KEY,
+                reward_pref TEXT    NOT NULL DEFAULT 'all',
+                travel_mode INTEGER NOT NULL DEFAULT 0
             )
         """)
+        # Migrate existing DBs that don't yet have travel_mode
+        try:
+            conn.execute("ALTER TABLE user_prefs ADD COLUMN travel_mode INTEGER NOT NULL DEFAULT 0")
+        except Exception:
+            pass
 
 
 @contextmanager
@@ -84,4 +90,21 @@ def set_reward_pref(user_id: int, pref: str) -> None:
             "INSERT INTO user_prefs (user_id, reward_pref) VALUES (?, ?)"
             " ON CONFLICT(user_id) DO UPDATE SET reward_pref = excluded.reward_pref",
             (user_id, pref),
+        )
+
+
+def get_travel_mode(user_id: int) -> bool:
+    with _conn() as conn:
+        row = conn.execute(
+            "SELECT travel_mode FROM user_prefs WHERE user_id = ?", (user_id,)
+        ).fetchone()
+    return bool(row["travel_mode"]) if row else False
+
+
+def set_travel_mode(user_id: int, active: bool) -> None:
+    with _conn() as conn:
+        conn.execute(
+            "INSERT INTO user_prefs (user_id, travel_mode) VALUES (?, ?)"
+            " ON CONFLICT(user_id) DO UPDATE SET travel_mode = excluded.travel_mode",
+            (user_id, int(active)),
         )

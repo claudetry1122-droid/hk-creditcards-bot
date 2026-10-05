@@ -79,6 +79,8 @@ CARDS = {
             "general":       {"rate": 0.4,  "note": "0.4% cashback (base rate)",                                      "sort_key": 0.4},
         },
         "tip": "8% at designated merchants (dining/shopping/entertainment); 4% all online; 0.4% elsewhere. Perpetual fee waiver. Min income HKD 120k.",
+        "cap_note": "8% cashback capped at HKD 1,250/month; 4% online capped at HKD 10,000/month",
+        "no_fx_fee": True,
     },
     "hsbc_visa_sig": {
         "name": "HSBC Visa Signature Credit Card",
@@ -120,6 +122,7 @@ CARDS = {
             "travel_cathay":     {"rate": 0.5,  "note": "HKD 2 = 1 EveryMile on Cathay/HK Express",           "sort_key": 0.5},
         },
         "tip": "HKD 2 = 1 mile on café, local transport, cross-border & travel; HKD 5 = 1 mile on everything else. Includes lounge access. Min income HKD 240k.",
+        "no_fx_fee": True,
     },
 
     # ── HANG SENG ─────────────────────────────────────────────────────────────
@@ -267,6 +270,7 @@ CARDS = {
             "entertainment_streaming":  {"rate": 1.2, "note": "1.2% cashback (streaming platforms not in designated list)",       "sort_key": 1.2},
         },
         "tip": "Free annual fee. Zero FX fee. 5% at 10 designated merchants: McDonald's, Foodpanda, HKTVmall, PARKnSHOP, Circle K, Watsons, Sasa, Klook, China Mobile HK, s/ash. 1.2% everywhere else.",
+        "no_fx_fee": True,
     },
     "sc_cathay": {
         "name": "Standard Chartered Cathay Mastercard",
@@ -336,6 +340,7 @@ CARDS = {
             "online_fashion":           {"rate": 8.0, "note": "Up to 8% on fashion online",                  "sort_key": 8.0},
         },
         "tip": "Best for online shopping & local transit (MTR/bus/tram). Requires HKD 1,000 non-online spend/month to unlock bonus; HKD 200/month cashback cap.",
+        "cap_note": "Bonus cashback (above 0.4% base) capped at HKD 200/month combined",
     },
     "sim_world_mc": {
         "name": "sim World Mastercard®",
@@ -361,6 +366,8 @@ CARDS = {
             "online_fashion":           {"rate": 8.0, "note": "Up to 8% on fashion online",                        "sort_key": 8.0},
         },
         "tip": "Best for overseas spending & online shopping. Requires HKD 1,000 non-online spend/month to unlock bonus; HKD 200/month cashback cap.",
+        "cap_note": "Bonus cashback (above 0.4% base) capped at HKD 200/month combined",
+        "no_fx_fee": True,
     },
 
     # ── DBS ───────────────────────────────────────────────────────────────────
@@ -411,6 +418,7 @@ CARDS = {
             "overseas_japan":           {"rate": 5.0,  "note": "5% cashback on Japan/overseas (World MC)",                   "sort_key": 5.0},
         },
         "tip": "World MC: 10% at Chill Merchants (requires HKD 1,500/month), 5% online & overseas. Platinum MC: 8%/4% with HKD 1,000/month threshold. Also earns BOC Gift Points.",
+        "cap_note": "10% Chill Merchant rate requires min. spend of HKD 1,500/month (World MC)",
     },
 
     # ── AEON ──────────────────────────────────────────────────────────────────
@@ -438,6 +446,8 @@ CARDS = {
             "online_fashion":           {"rate": 6.0, "note": "6% WAKU COIN on fashion online",                           "sort_key": 6.0},
         },
         "tip": "6% WAKU COIN on online & Japan/overseas (HKD 200 extra/month cap); 1% local dining; 0.4% base unlimited. WAKU COIN = cash (10 coins = HKD 10). Permanent fee waiver.",
+        "cap_note": "Extra WAKU COIN (above 0.4% base) capped at HKD 200/month combined",
+        "no_fx_fee": True,
     },
 
     # ── DIGITAL BANKS ─────────────────────────────────────────────────────────
@@ -462,6 +472,7 @@ CARDS = {
             "supermarket_health_beauty": {"rate": 3.0, "note": "3% cashback at Mannings/Watsons/Sasa (supermarket MCC)", "sort_key": 3.0},
         },
         "tip": "3% cashback at supermarkets; 1% on everything else (upgrades to 2% with Mox savings balance ≥ HKD 250k). Zero FX fee. No annual fee, no cashback cap.",
+        "no_fx_fee": True,
     },
     "za_card": {
         "name": "ZA Card",
@@ -481,6 +492,7 @@ CARDS = {
             "general":       {"rate": 1.0,  "note": "1% cashback guaranteed on all eligible spend",            "sort_key": 1.0},
         },
         "tip": "Guaranteed 1% cashback on all spend. PowerDraw feature gives a chance at random bonus rebates (up to 200%). Fully digital, no annual fee.",
+        "no_fx_fee": True,
     },
 
 }  # end CARDS
