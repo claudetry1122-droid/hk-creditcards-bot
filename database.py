@@ -19,14 +19,19 @@ def init_db():
             CREATE TABLE IF NOT EXISTS user_prefs (
                 user_id     INTEGER PRIMARY KEY,
                 reward_pref TEXT    NOT NULL DEFAULT 'all',
-                travel_mode INTEGER NOT NULL DEFAULT 0
+                travel_mode INTEGER NOT NULL DEFAULT 0,
+                mile_value  REAL    NOT NULL DEFAULT 0.15
             )
         """)
-        # Migrate existing DBs that don't yet have travel_mode
-        try:
-            conn.execute("ALTER TABLE user_prefs ADD COLUMN travel_mode INTEGER NOT NULL DEFAULT 0")
-        except Exception:
-            pass
+        # Migrate existing DBs
+        for col_sql in [
+            "ALTER TABLE user_prefs ADD COLUMN travel_mode INTEGER NOT NULL DEFAULT 0",
+            "ALTER TABLE user_prefs ADD COLUMN mile_value  REAL    NOT NULL DEFAULT 0.15",
+        ]:
+            try:
+                conn.execute(col_sql)
+            except Exception:
+                pass
 
 
 @contextmanager
@@ -107,4 +112,22 @@ def set_travel_mode(user_id: int, active: bool) -> None:
             "INSERT INTO user_prefs (user_id, travel_mode) VALUES (?, ?)"
             " ON CONFLICT(user_id) DO UPDATE SET travel_mode = excluded.travel_mode",
             (user_id, int(active)),
+        )
+
+
+def get_mile_value(user_id: int) -> float:
+    """Returns the user's assumed HKD value per mile (default 0.15)."""
+    with _conn() as conn:
+        row = conn.execute(
+            "SELECT mile_value FROM user_prefs WHERE user_id = ?", (user_id,)
+        ).fetchone()
+    return float(row["mile_value"]) if row else 0.15
+
+
+def set_mile_value(user_id: int, value: float) -> None:
+    with _conn() as conn:
+        conn.execute(
+            "INSERT INTO user_prefs (user_id, mile_value) VALUES (?, ?)"
+            " ON CONFLICT(user_id) DO UPDATE SET mile_value = excluded.mile_value",
+            (user_id, value),
         )

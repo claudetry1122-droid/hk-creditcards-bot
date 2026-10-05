@@ -29,6 +29,17 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 # ── Reward lookup with parent-category fallback ───────────────────────────────
 
+def _equiv_str(sort_key: float, reward_type: str, card: dict, mile_value: float) -> str:
+    """Return a short cashback-equivalent string for miles/points rates, or '' for cashback."""
+    if reward_type == "miles":
+        equiv = sort_key * mile_value * 100
+        return f"≈ {equiv:.1f}% equiv"
+    if reward_type == "points" and card.get("point_value_hkd"):
+        equiv = sort_key * card["point_value_hkd"] * 100
+        return f"≈ {equiv:.1f}% equiv"
+    return ""
+
+
 def _get_reward(card: dict, category: str) -> dict:
     """Return reward dict for category, falling back to parent then general."""
     if category in card["rewards"]:
@@ -222,6 +233,7 @@ def _build_recommendation(user_id: int, category: str) -> tuple[str, InlineKeybo
     cat_info = CATEGORIES[category]
     pref = db.get_reward_pref(user_id)
     travel = db.get_travel_mode(user_id)
+    mile_value = db.get_mile_value(user_id)
     is_overseas_cat = category in ("overseas", "overseas_japan", "hotels", "travel", "travel_cathay", "travel_klook")
 
     buckets: dict[str, list[dict]] = {"cashback": [], "miles": [], "points": []}
@@ -239,6 +251,7 @@ def _build_recommendation(user_id: int, category: str) -> tuple[str, InlineKeybo
             "card_id":   card_id,
             "cap_note":  card.get("cap_note"),
             "no_fx_fee": card.get("no_fx_fee", False),
+            "card_obj":  card,
         })
 
     for group in buckets.values():
@@ -273,12 +286,16 @@ def _build_recommendation(user_id: int, category: str) -> tuple[str, InlineKeybo
         lines.append(f"{icons[btype]} *{titles[btype]}:*")
         fx_badge = "  ✅ _No FX fee_" if (best["no_fx_fee"] and (travel or is_overseas_cat)) else ""
         lines.append(f"   🏆 *{best['name']}*  ({best['bank']}){marker}{fx_badge}")
-        lines.append(f"   → {best['reward']['note']}")
+        equiv = _equiv_str(best["reward"]["sort_key"], btype, best["card_obj"], mile_value)
+        equiv_tag = f"  _({equiv})_" if equiv else ""
+        lines.append(f"   → {best['reward']['note']}{equiv_tag}")
         if best["cap_note"]:
             lines.append(f"   ⚠️ _{best['cap_note']}_")
         for r in group[1:]:
             fx = "  ✅" if (r["no_fx_fee"] and (travel or is_overseas_cat)) else ""
-            lines.append(f"   • {r['name']}{fx}: {r['reward']['note']}")
+            equiv = _equiv_str(r["reward"]["sort_key"], btype, r["card_obj"], mile_value)
+            equiv_tag = f"  _({equiv})_" if equiv else ""
+            lines.append(f"   • {r['name']}{fx}: {r['reward']['note']}{equiv_tag}")
             if r["cap_note"]:
                 lines.append(f"     ⚠️ _{r['cap_note']}_")
         lines.append("")
@@ -484,23 +501,78 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if data == "menu:pref":
         await query.answer()
         pref = db.get_reward_pref(user_id)
-        labels = {"all": "Show all types", "cashback": "💰 Cashback", "miles": "✈️ Miles / Points"}
-        current = labels.get(pref, "Show all types")
+        mile_value = db.get_mile_value(user_id)
+        pref_labels = {"all": "Show all types", "cashback": "💰 Cashback", "miles": "✈️ Miles / Points"}
+        current_pref = pref_labels.get(pref, "Show all types")
         text = (
             "*⚙️ Reward Preference*\n\n"
-            "Choose which reward type to highlight in recommendations.\n\n"
-            f"Current: *{current}*\n\n"
+            f"Reward type shown first: *{current_pref}*\n"
+            f"Mile value assumption: *HKD {mile_value:.2f} per mile*\n\n"
             "• *Show all* — display cashback, miles and points separately\n"
             "• *Prefer cashback* — highlight cashback cards first\n"
             "• *Prefer miles / points* — highlight miles & points cards first\n\n"
-            "_Tip: miles are great if you fly Cathay/Asia Miles regularly and "
-            "value 1 mile at ~HKD 0.15–0.25. Otherwise cashback is simpler._"
+            "The *mile value* is used to show a cashback-equivalent % next to "
+            "every miles/points rate in recommendations, so you can compare apples to apples.\n\n"
+            "_HKD 0.15 = conservative (economy redemptions)\n"
+            "HKD 0.20 = moderate (good economy / basic biz)\n"
+            "HKD 0.25 = optimistic (business class redemptions)_"
         )
         kb = InlineKeyboardMarkup([
-            [InlineKeyboardButton("💰  Prefer Cashback",      callback_data="pref:cashback")],
-            [InlineKeyboardButton("✈️  Prefer Miles / Points", callback_data="pref:miles")],
-            [InlineKeyboardButton("🔄  Show All Types",        callback_data="pref:all")],
-            [InlineKeyboardButton("⬅️  Back",                  callback_data="back:main")],
+            [InlineKeyboardButton("💰  Prefer Cashback",       callback_data="pref:cashback")],
+            [InlineKeyboardButton("✈️  Prefer Miles / Points",  callback_data="pref:miles")],
+            [InlineKeyboardButton("🔄  Show All Types",         callback_data="pref:all")],
+            [InlineKeyboardButton("── Mile Value ──",           callback_data="noop")],
+            [InlineKeyboardButton("HKD 0.10  (low)",           callback_data="mileval:0.10"),
+             InlineKeyboardButton("HKD 0.15  (default)",       callback_data="mileval:0.15")],
+            [InlineKeyboardButton("HKD 0.20  (good)",          callback_data="mileval:0.20"),
+             InlineKeyboardButton("HKD 0.25  (premium)",       callback_data="mileval:0.25")],
+            [InlineKeyboardButton("⬅️  Back",                   callback_data="back:main")],
+        ])
+        await query.edit_message_text(text, parse_mode="Markdown", reply_markup=kb)
+        return
+
+    if data == "noop":
+        await query.answer()
+        return
+
+    if data.startswith("mileval:"):
+        try:
+            value = float(data[8:])
+        except ValueError:
+            await query.answer()
+            return
+        if value not in (0.10, 0.15, 0.20, 0.25):
+            await query.answer()
+            return
+        db.set_mile_value(user_id, value)
+        await query.answer(f"Mile value set to HKD {value:.2f}")
+        # Re-open the pref screen with updated values shown
+        pref = db.get_reward_pref(user_id)
+        pref_labels = {"all": "Show all types", "cashback": "💰 Cashback", "miles": "✈️ Miles / Points"}
+        current_pref = pref_labels.get(pref, "Show all types")
+        text = (
+            "*⚙️ Reward Preference*\n\n"
+            f"Reward type shown first: *{current_pref}*\n"
+            f"Mile value assumption: *HKD {value:.2f} per mile* ✅\n\n"
+            "• *Show all* — display cashback, miles and points separately\n"
+            "• *Prefer cashback* — highlight cashback cards first\n"
+            "• *Prefer miles / points* — highlight miles & points cards first\n\n"
+            "The *mile value* is used to show a cashback-equivalent % next to "
+            "every miles/points rate in recommendations, so you can compare apples to apples.\n\n"
+            "_HKD 0.15 = conservative (economy redemptions)\n"
+            "HKD 0.20 = moderate (good economy / basic biz)\n"
+            "HKD 0.25 = optimistic (business class redemptions)_"
+        )
+        kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton("💰  Prefer Cashback",       callback_data="pref:cashback")],
+            [InlineKeyboardButton("✈️  Prefer Miles / Points",  callback_data="pref:miles")],
+            [InlineKeyboardButton("🔄  Show All Types",         callback_data="pref:all")],
+            [InlineKeyboardButton("── Mile Value ──",           callback_data="noop")],
+            [InlineKeyboardButton("HKD 0.10  (low)",           callback_data="mileval:0.10"),
+             InlineKeyboardButton("HKD 0.15  (default)",       callback_data="mileval:0.15")],
+            [InlineKeyboardButton("HKD 0.20  (good)",          callback_data="mileval:0.20"),
+             InlineKeyboardButton("HKD 0.25  (premium)",       callback_data="mileval:0.25")],
+            [InlineKeyboardButton("⬅️  Back",                   callback_data="back:main")],
         ])
         await query.edit_message_text(text, parse_mode="Markdown", reply_markup=kb)
         return

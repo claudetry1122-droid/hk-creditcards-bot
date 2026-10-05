@@ -149,6 +149,7 @@ CARDS = {
             "supermarket_parknshop":    {"rate": 1.0, "note": "1 yuu Point/HKD at PARKnSHOP (base rate)",       "sort_key": 1.0},
         },
         "tip": "4 pts/HKD at KFC/Pizza Hut/Maxim's; 3 pts/HKD at Mannings; 2 pts/HKD online; 1 pt/HKD base. 200 yuu Points = HKD 1. Free annual fee.",
+        "point_value_hkd": 0.005,  # 200 pts = HKD 1 → 1 pt = HKD 0.005 (fixed redemption rate)
     },
     "hangseng_mpower": {
         "name": "Hang Seng MMPOWER World Mastercard",
