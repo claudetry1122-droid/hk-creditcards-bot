@@ -30,13 +30,13 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 # ── Reward lookup with parent-category fallback ───────────────────────────────
 
 def _equiv_str(sort_key: float, reward_type: str, card: dict, mile_value: float) -> str:
-    """Return a short cashback-equivalent string for miles/points rates, or '' for cashback."""
+    """Return a layman-friendly value label for miles/points rates, or '' for cashback."""
     if reward_type == "miles":
         equiv = sort_key * mile_value * 100
-        return f"≈ {equiv:.1f}% equiv"
+        return f"≈ HKD {equiv:.1f} back per HKD 100 (in flight miles)"
     if reward_type == "points" and card.get("point_value_hkd"):
         equiv = sort_key * card["point_value_hkd"] * 100
-        return f"≈ {equiv:.1f}% equiv"
+        return f"≈ HKD {equiv:.1f} back per HKD 100 (in reward points)"
     return ""
 
 
